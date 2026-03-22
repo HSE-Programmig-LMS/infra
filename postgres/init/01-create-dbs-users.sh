@@ -10,9 +10,17 @@ set -euo pipefail
 : "${STUDY_DB_PASSWORD:?STUDY_DB_PASSWORD is required}"
 
 psql -v ON_ERROR_STOP=1 --username "postgres" --dbname "postgres" <<-EOSQL
-  -- Databases
-  CREATE DATABASE ${CORE_DB};
-  CREATE DATABASE ${STUDY_DB};
+  -- Databases (idempotent)
+  DO \$\$
+  BEGIN
+    IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '${CORE_DB}') THEN
+      CREATE DATABASE ${CORE_DB};
+    END IF;
+    IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '${STUDY_DB}') THEN
+      CREATE DATABASE ${STUDY_DB};
+    END IF;
+  END
+  \$\$;
 
   -- Roles/users (idempotent)
   DO \$\$
@@ -26,4 +34,11 @@ psql -v ON_ERROR_STOP=1 --username "postgres" --dbname "postgres" <<-EOSQL
     END IF;
   END
   \$\$;
+
+  -- Ownership / connect privileges
+  ALTER DATABASE ${CORE_DB} OWNER TO ${CORE_DB_USER};
+  ALTER DATABASE ${STUDY_DB} OWNER TO ${STUDY_DB_USER};
+
+  GRANT CONNECT ON DATABASE ${CORE_DB} TO ${CORE_DB_USER};
+  GRANT CONNECT ON DATABASE ${STUDY_DB} TO ${STUDY_DB_USER};
 EOSQL

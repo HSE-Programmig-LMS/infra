@@ -21,7 +21,10 @@ services:
       - backend
 
   core-service:
-    image: ${CORE_IMAGE:-myorg/core-service:dev}
+    build:
+      context: ../core-service
+      dockerfile: Dockerfile
+    image: core-service:dev
     container_name: core_service
     env_file: .env
     environment:
@@ -33,13 +36,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # TODO: requires curl inside the image, or replace with wget, or remove healthcheck
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -fsS http://localhost:8080/health > /dev/null || exit 1",
-        ]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health > /dev/null || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -47,7 +45,10 @@ services:
       - backend
 
   study-service:
-    image: ${STUDY_IMAGE:-myorg/study-service:dev}
+    build:
+      context: ../study-service
+      dockerfile: Dockerfile
+    image: study-service:dev
     container_name: study_service
     env_file: .env
     environment:
@@ -61,13 +62,8 @@ services:
         condition: service_healthy
       core-service:
         condition: service_healthy
-    # TODO: requires curl inside the image, or replace with wget, or remove healthcheck
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -fsS http://localhost:8080/health > /dev/null || exit 1",
-        ]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health > /dev/null || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 10
